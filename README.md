@@ -21,6 +21,19 @@ slovak-benchmark-site/
 
 ---
 
+---
+
+## ⚙️ Requirements
+
+```
+flask>=3.0.0
+flask-cors>=4.0.0
+supabase>=2.0.0
+storage3==0.7.7
+huggingface-hub>=0.20.0
+python-dotenv>=1.0.0
+```
+
 ##  🚀 Spustenie webového portálu
 ---
 Change to main directory folder with cd ...
