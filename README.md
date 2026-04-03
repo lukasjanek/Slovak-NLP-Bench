@@ -1,4 +1,5 @@
-# SK·BENCH web portal — Flask backend + React frontend, which loads results from the Supabase cloud database and displays them in the form of rankings and detailed model cards
+# SK·BENCH web portal
+Flask backend + React frontend, which loads results from the Supabase cloud database and displays them in the form of rankings and detailed model cards
 
 ```
 slovak-benchmark-site/
