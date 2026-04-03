@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Leaderboard — Slovak NLP Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/main.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="js/api.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const EXTRA_COLS = {
+  qa:             [{key:'token_f1',label:'TOKEN F1'},{key:'exact_match',label:'EXACT M'},{key:'bertscore_f1',label:'BERT F1'}],
+  classification: [{key:'f1_weighted',label:'F1 W'},{key:'accuracy',label:'ACC'}],
+  fill_mask:      [{key:'top1_accuracy',label:'TOP-1'},{key:'top5_accuracy',label:'TOP-5'}],
+  generation:     [{key:'perplexity',label:'PPL ↓'},{key:'bpc',label:'BPC ↓'}],
+};
+const RANK_CLS = ['gold','silver','bronze'];
+const RANK_SYM = ['①','②','③'];
+
+function RatingTag({ rating }) {
+  if (!rating) return null;
+  return <span className={`rating-tag rating-${rating}`}>{rating}</span>;
+}
+
+function Loading({ lang }) {
+  return <div className="loading"><div className="spinner"/><span>{t(lang,'loading')}</span></div>;
+}
+
+function Sidebar({ rawTasks, activeTaskId, lang }) {
+  return (
+    <div className="sidebar">
+      <div className="sidebar-label">{t(lang,'tasksLabel')}</div>
+      {rawTasks.map(task => {
+        const tr = translateTask(task, lang);
+        return (
+          <button key={task.id}
+            className={`task-btn ${activeTaskId === task.id ? 'active' : ''}`}
+            onClick={() => window.location.href = `/leaderboard.html?task=${task.id}`}>
+            <span className="task-icon">{task.icon}</span>
+            <div className="task-label">
+              <div>{tr.label}</div>
+              <div className="task-desc">{tr.description}</div>
+            </div>
+          </button>
+        );
+      })}
+      <div className="sidebar-divider"/>
+      <button className="task-btn" onClick={() => window.location.href = '/'}>
+        <span className="task-icon">🏠</span>
+        <div className="task-label"><div>{t(lang,'home')}</div></div>
+      </button>
+      <div className="sidebar-footer">
+        <a href={GITHUB} target="_blank" rel="noopener" className="ext-link">
+          <span>⚙️</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">Slovak Benchmark Mini</div>
+            <div className="ext-link-sub">{t(lang,'sourceCode')}</div>
+          </div>
+        </a>
+        <a href="https://huggingface.co/datasets/lukasjanek" target="_blank" rel="noopener" className="ext-link">
+          <span>🤗</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">{t(lang,'benchmarkDatasets')}</div>
+            <div className="ext-link-sub">lukasjanek @ HuggingFace</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ rawTasks, activeTaskId, lang, onLangToggle, children }) {
+  return (
+    <div className="shell">
+      <div className="topbar">
+        <a href="/" className="logo" style={{textDecoration:'none'}}>SK<span>·</span>BENCH</a>
+        <span className="badge">v1.0</span>
+        <span className="badge">Slovak NLP</span>
+        <div className="topbar-right">
+          <button className="lang-toggle" onClick={onLangToggle}>{t(lang,'langToggle')}</button>
+          <a href={GITHUB} target="_blank" rel="noopener"
+             style={{color:'var(--muted)',textDecoration:'none',fontSize:12,fontFamily:'var(--mono)'}}>
+            GitHub ↗
+          </a>
+        </div>
+      </div>
+      <div className="main">
+        <Sidebar rawTasks={rawTasks} activeTaskId={activeTaskId} lang={lang}/>
+        <div className="content">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Leaderboard({ taskId, rawTasks, rows, lang }) {
+  const rawTask = rawTasks.find(tk => tk.id === taskId);
+  if (!rawTask) return <div className="empty">{t(lang,'unknownTask')}: {taskId}</div>;
+  const task = translateTask(rawTask, lang);
+  const cols  = EXTRA_COLS[taskId] || [];
+
+  return (
+    <div>
+      <div className="lb-header">
+        <div className="lb-title">{task.icon} {task.label}</div>
+        <div className="lb-count">{rows.length} {t(lang,'modelsCount')}</div>
+      </div>
+      <div className="lb-meta">
+        {t(lang,'datasetLabel')}: <span style={{fontFamily:'var(--mono)',fontSize:11}}>{task.dataset}</span>
+        &nbsp;·&nbsp; {t(lang,'primaryMetricLbl')}: <span style={{fontFamily:'var(--mono)',fontSize:11}}>{task.metric}</span>
+        &nbsp;·&nbsp; <a href={GITHUB} target="_blank" rel="noopener"
+          style={{color:'var(--accent)',fontSize:11,fontFamily:'var(--mono)'}}>{t(lang,'methodologyLink')}</a>
+      </div>
+      <table className="lb-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{t(lang,'colModel')}</th>
+            <th>{t(lang,'colPrimary')}</th>
+            {cols.map(c => <th key={c.key}>{c.label}</th>)}
+            {taskId === 'qa'         && <th>{t(lang,'colType')}</th>}
+            {taskId === 'generation' && <th>{t(lang,'colRating')}</th>}
+            <th>{t(lang,'colParams')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const pm = primaryMetric(row, taskId);
+            return (
+              <tr key={row.model_id + i}
+                  onClick={() => window.location.href = `/model.html?model=${encodeURIComponent(row.model_id)}&task=${taskId}`}>
+                <td><span className={`rank ${RANK_CLS[i] || ''}`}>{RANK_SYM[i] || i+1}</span></td>
+                <td>
+                  <div className="model-cell">
+                    <div className="model-cell-name">{row.display_name || row.model_id.split('/').pop()}</div>
+                    <div className="model-cell-id">{row.model_id}</div>
+                    {row.architecture && (
+                      <div className="model-cell-tags">
+                        <span className="tag">{row.architecture}</span>
+                        {row.model_type && <span className="tag">{row.model_type}</span>}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  {pm.val != null
+                    ? <span className={`score-pill ${pillClass(pm.val, taskId)}`}>{fmt(pm.val)}</span>
+                    : <span className="score-pill">—</span>}
+                </td>
+                {cols.map(c => (
+                  <td key={c.key}>
+                    <span style={{fontFamily:'var(--mono)',fontSize:12}}>{fmt(row[c.key])}</span>
+                  </td>
+                ))}
+                {taskId === 'qa' && <td><span className="tag">{row.qa_subtask || 'extractive'}</span></td>}
+                {taskId === 'generation' && <td><RatingTag rating={row.perplexity_rating}/></td>}
+                <td><span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)'}}>{row.param_count || '—'}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function App() {
+  const taskId = getParam('task');
+  const [rawTasks, setRawTasks] = useState([]);
+  const [rows,     setRows]     = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [lang,     setLang]     = useState(getSavedLang);
+
+  // Fetch ONCE on mount — lang change only re-renders, never re-fetches
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/tasks`).then(r => r.json()),
+      fetch(`${API}/leaderboard/${taskId}`).then(r => r.json()),
+    ]).then(([rawT, r]) => {
+      setRawTasks(rawT);
+      setRows(r);
+      setLoading(false);
+      const raw = rawT.find(x => x.id === taskId);
+      if (raw) document.title = `${translateTask(raw, lang).label} — Slovak NLP Benchmark`;
+    }).catch(() => setLoading(false));
+  }, []); // [] — only runs on mount
+
+  const toggleLang = () => {
+    const next = lang === 'en' ? 'sk' : 'en';
+    saveLang(next);
+    setLang(next);
+  };
+
+  return (
+    <Shell rawTasks={rawTasks} activeTaskId={taskId} lang={lang} onLangToggle={toggleLang}>
+      {loading
+        ? <Loading lang={lang}/>
+        : <Leaderboard taskId={taskId} rawTasks={rawTasks} rows={rows} lang={lang}/>}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

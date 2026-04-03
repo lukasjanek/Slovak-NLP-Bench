@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Slovak NLP Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/main.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="js/api.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function Sidebar({ tasks, activeTaskId, lang }) {
+  return (
+    <div className="sidebar">
+      <div className="sidebar-label">{t(lang,'tasksLabel')}</div>
+      {tasks.map(task => (
+        <button key={task.id}
+          className={`task-btn ${activeTaskId === task.id ? 'active' : ''}`}
+          onClick={() => window.location.href = `/leaderboard.html?task=${task.id}`}>
+          <span className="task-icon">{task.icon}</span>
+          <div className="task-label">
+            <div>{translateTask(task, lang).label}</div>
+            <div className="task-desc">{translateTask(task, lang).description}</div>
+          </div>
+        </button>
+      ))}
+      <div className="sidebar-divider"/>
+      <button className="task-btn" onClick={() => window.location.href = '/'}>
+        <span className="task-icon">🏠</span>
+        <div className="task-label"><div>{t(lang,'home')}</div></div>
+      </button>
+      <div className="sidebar-footer">
+        <a href={GITHUB} target="_blank" rel="noopener" className="ext-link">
+          <span>⚙️</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">Slovak Benchmark Mini</div>
+            <div className="ext-link-sub">{t(lang,'sourceCode')}</div>
+          </div>
+        </a>
+        <a href="https://huggingface.co/datasets/lukasjanek" target="_blank" rel="noopener" className="ext-link">
+          <span>🤗</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">{t(lang,'benchmarkDatasets')}</div>
+            <div className="ext-link-sub">lukasjanek @ HuggingFace</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ tasks, activeTaskId, lang, onLangToggle, children }) {
+  return (
+    <div className="shell">
+      <div className="topbar">
+        <a href="/" className="logo" style={{textDecoration:'none'}}>SK<span>·</span>BENCH</a>
+        <span className="badge">v1.0</span>
+        <span className="badge">Slovak NLP</span>
+        <div className="topbar-right">
+          <button className="lang-toggle" onClick={onLangToggle}>{t(lang,'langToggle')}</button>
+          <a href={GITHUB} target="_blank" rel="noopener"
+             style={{color:'var(--muted)',textDecoration:'none',fontSize:12,fontFamily:'var(--mono)'}}>
+            GitHub ↗
+          </a>
+        </div>
+      </div>
+      <div className="main">
+        <Sidebar tasks={tasks} activeTaskId={activeTaskId} lang={lang}/>
+        <div className="content">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Splash({ tasks, lang }) {
+  return (
+    <div className="splash">
+      <div className="splash-tag">{t(lang,'splashTag')}</div>
+      <h1>{t(lang,'splashH1a')}<br/>{t(lang,'splashH1b')} <em>{t(lang,'splashH1em')}</em></h1>
+      <p>{t(lang,'splashP')}</p>
+      <div className="splash-stats">
+        {tasks.map(task => (
+          <div key={task.id}>
+            <div className="stat-num">{task.icon}</div>
+            <div className="stat-lbl">{translateTask(task, lang).label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [rawTasks, setRawTasks] = useState([]);
+  const [lang, setLang] = useState(getSavedLang);
+
+  // Fetch ONCE on mount — lang change only re-renders, never re-fetches
+  useEffect(() => {
+    fetch(`${API}/tasks`).then(r => r.json()).then(setRawTasks).catch(() => {});
+  }, []);
+
+  const toggleLang = () => {
+    const next = lang === 'en' ? 'sk' : 'en';
+    saveLang(next);
+    setLang(next);
+  };
+
+  return (
+    <Shell tasks={rawTasks} activeTaskId={null} lang={lang} onLangToggle={toggleLang}>
+      <Splash tasks={rawTasks} lang={lang}/>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

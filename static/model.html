@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Model — Slovak NLP Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/main.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="js/api.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function Loading({ lang }) {
+  return <div className="loading"><div className="spinner"/><span>{t(lang,'loading')}</span></div>;
+}
+
+function Sidebar({ rawTasks, activeTaskId, lang }) {
+  return (
+    <div className="sidebar">
+      <div className="sidebar-label">{t(lang,'tasksLabel')}</div>
+      {rawTasks.map(task => {
+        const tr = translateTask(task, lang);
+        return (
+          <button key={task.id}
+            className={`task-btn ${activeTaskId === task.id ? 'active' : ''}`}
+            onClick={() => window.location.href = `/leaderboard.html?task=${task.id}`}>
+            <span className="task-icon">{task.icon}</span>
+            <div className="task-label">
+              <div>{tr.label}</div>
+              <div className="task-desc">{tr.description}</div>
+            </div>
+          </button>
+        );
+      })}
+      <div className="sidebar-divider"/>
+      <button className="task-btn" onClick={() => window.location.href = '/'}>
+        <span className="task-icon">🏠</span>
+        <div className="task-label"><div>{t(lang,'home')}</div></div>
+      </button>
+      <div className="sidebar-footer">
+        <a href={GITHUB} target="_blank" rel="noopener" className="ext-link">
+          <span>⚙️</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">Slovak Benchmark Mini</div>
+            <div className="ext-link-sub">{t(lang,'sourceCode')}</div>
+          </div>
+        </a>
+        <a href="https://huggingface.co/datasets/lukasjanek" target="_blank" rel="noopener" className="ext-link">
+          <span>🤗</span>
+          <div className="ext-link-txt">
+            <div className="ext-link-name">{t(lang,'benchmarkDatasets')}</div>
+            <div className="ext-link-sub">lukasjanek @ HuggingFace</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ rawTasks, activeTaskId, lang, onLangToggle, children }) {
+  return (
+    <div className="shell">
+      <div className="topbar">
+        <a href="/" className="logo" style={{textDecoration:'none'}}>SK<span>·</span>BENCH</a>
+        <span className="badge">v1.0</span>
+        <span className="badge">Slovak NLP</span>
+        <div className="topbar-right">
+          <button className="lang-toggle" onClick={onLangToggle}>{t(lang,'langToggle')}</button>
+          <a href={GITHUB} target="_blank" rel="noopener"
+             style={{color:'var(--muted)',textDecoration:'none',fontSize:12,fontFamily:'var(--mono)'}}>
+            GitHub ↗
+          </a>
+        </div>
+      </div>
+      <div className="main">
+        <Sidebar rawTasks={rawTasks} activeTaskId={activeTaskId} lang={lang}/>
+        <div className="content">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function MetricsPanel({ result, lang }) {
+  if (!result) return <div className="empty" style={{padding:'12px 0'}}>{t(lang,'noData')}</div>;
+  const task = result.task;
+  const rows = [];
+
+  if (task === 'qa') {
+    if (result.qa_subtask === 'generative') {
+      rows.push({name:'BERTScore F1',              val:fmt(result.bertscore_f1), hi:true});
+      rows.push({name:'Token F1',                  val:fmt(result.token_f1)});
+    } else {
+      rows.push({name:'Token F1',                  val:fmt(result.token_f1),    hi:true});
+      rows.push({name:'Exact Match',               val:fmt(result.exact_match)});
+    }
+    rows.push({name:t(lang,'mQaType'),             val:result.qa_subtask || 'extractive'});
+  }
+  if (task === 'classification') {
+    rows.push({name:'F1 Weighted',                 val:fmt(result.f1_weighted), hi:true});
+    rows.push({name:'Accuracy',                    val:fmt(result.accuracy)});
+    rows.push({name:t(lang,'mModelClasses'),       val:result.n_classes_model});
+    rows.push({name:t(lang,'mDatasetClasses'),     val:result.n_classes_dataset});
+  }
+  if (task === 'fill_mask') {
+    rows.push({name:'Top-1 Accuracy',              val:fmt(result.top1_accuracy), hi:true});
+    rows.push({name:'Top-5 Accuracy',              val:fmt(result.top5_accuracy)});
+  }
+  if (task === 'generation') {
+    rows.push({name:'Perplexity ↓',                val:fmt(result.perplexity, 2), hi:true});
+    rows.push({name:'PPL Rating',                  val:result.perplexity_rating});
+    rows.push({name:'BPC ↓',                      val:fmt(result.bpc, 4)});
+    rows.push({name:'BPC Rating',                  val:result.bpc_rating});
+    rows.push({name:t(lang,'mEvalMode'),           val:result.eval_mode});
+  }
+  rows.push({name:t(lang,'mSamples'),              val:result.n_samples});
+
+  return (
+    <>
+      {result.reliable === false && (
+        <div className="unreliable-warn">{t(lang,'unreliableWarn')}</div>
+      )}
+      {rows.map((r, i) => (
+        <div className="metric-row" key={i}>
+          <span className="metric-name">{r.name}</span>
+          <span className={`metric-val${r.hi ? ' highlight' : ''}`}>{r.val ?? '—'}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function ModelDetail({ fromTask, data, lang }) {
+  const { model, results, code } = data;
+  const [selTask, setSelTask] = useState(fromTask || (results[0] && results[0].task));
+
+  const taskResult = results.find(r => r.task === selTask) || results[0];
+  const codeEntry  = code.find(c => c.task === selTask) || code[0];
+
+  const hfFilesUrl = model.hf_url?.includes('/tree/main')
+    ? model.hf_url
+    : `https://huggingface.co/${model.model_id}/tree/main`;
+
+  return (
+    <div>
+      <button className="back-btn"
+              onClick={() => window.location.href = `/leaderboard.html?task=${fromTask || selTask}`}>
+        {t(lang,'backBtn')}
+      </button>
+
+      {results.length > 1 && (
+        <div className="task-tabs">
+          {results.map(r => (
+            <button key={r.task}
+                    className={`task-tab ${selTask === r.task ? 'active' : 'inactive'}`}
+                    onClick={() => setSelTask(r.task)}>
+              {r.task.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="detail-layout">
+        <div className="detail-code">
+          <div className="detail-code-header">
+            <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
+            <span className="fname">{codeEntry ? `${selTask || 'model'}.py` : t(lang,'noSnippet')}</span>
+          </div>
+          <div className="code-body">
+            {codeEntry ? codeEntry.code : t(lang,'noCode')}
+          </div>
+        </div>
+
+        <div className="detail-panel">
+          <div className="panel-card">
+            <h3>{t(lang,'modelInfo')}</h3>
+            <div className="metric-row">
+              <span className="metric-name">{t(lang,'mName')}</span>
+              <span className="metric-val" style={{fontSize:12}}>{model.display_name}</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-name">{t(lang,'mArchitecture')}</span>
+              <span className="metric-val" style={{fontSize:11,fontFamily:'var(--mono)'}}>{model.architecture || '—'}</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-name">{t(lang,'mType')}</span>
+              <span className="metric-val" style={{fontSize:12}}>{model.model_type || '—'}</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-name">{t(lang,'mParameters')}</span>
+              <span className="metric-val" style={{fontSize:13}}>{model.param_count || '—'}</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-name">{t(lang,'mLanguage')}</span>
+              <span className="metric-val" style={{fontSize:12}}>{model.language || 'sk'}</span>
+            </div>
+          </div>
+
+          <div className="panel-card">
+            <h3>{t(lang,'scoresLabel')} — {selTask?.toUpperCase()}</h3>
+            <MetricsPanel result={taskResult} lang={lang}/>
+          </div>
+
+          <a href={hfFilesUrl} target="_blank" rel="noopener noreferrer" className="hf-link">
+            <span style={{fontSize:20}}>🤗</span>
+            <div>
+              <div style={{fontWeight:500,fontSize:13}}>{t(lang,'viewOnHF')}</div>
+              <div style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)',marginTop:2}}>
+                {model.model_id}/tree/main
+              </div>
+            </div>
+          </a>
+
+          {codeEntry?.colab_url && (
+            <a href={codeEntry.colab_url} target="_blank" rel="noopener noreferrer" className="colab-link">
+              <span style={{fontSize:18}}>📓</span>
+              <div>
+                <div style={{fontWeight:500}}>{t(lang,'openColab')}</div>
+                <div style={{fontSize:10,fontFamily:'var(--mono)',marginTop:1}}>{t(lang,'interactiveNb')}</div>
+              </div>
+            </a>
+          )}
+
+          <a href={`${GITHUB}#benchmarks`} target="_blank" rel="noopener noreferrer"
+             className="hf-link" style={{borderColor:'var(--border)'}}>
+            <span style={{fontSize:18}}>⚙️</span>
+            <div>
+              <div style={{fontWeight:500,fontSize:13}}>Slovak Benchmark Mini</div>
+              <div style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)',marginTop:2}}>
+                {t(lang,'ghMethodology')}
+              </div>
+            </div>
+          </a>
+
+          {model.description && (
+            <div className="panel-card">
+              <h3>{t(lang,'aboutLabel')}</h3>
+              <p style={{fontSize:12,color:'var(--muted)',lineHeight:1.7}}>{model.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const modelId  = getParam('model');
+  const fromTask = getParam('task');
+  const [rawTasks, setRawTasks] = useState([]);
+  const [data,     setData]     = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(null);
+  const [lang,     setLang]     = useState(getSavedLang);
+
+  // Fetch ONCE on mount — lang change only re-renders, never re-fetches
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/tasks`).then(r => r.json()),
+      fetch(`${API}/model/${modelId}`).then(r => r.json()),
+    ]).then(([rawT, d]) => {
+      setRawTasks(rawT);
+      if (d.error) setError(d.error);
+      else {
+        setData(d);
+        document.title = `${d.model.display_name || modelId} — Slovak NLP Benchmark`;
+      }
+      setLoading(false);
+    }).catch(e => { setError(e.message); setLoading(false); });
+  }, []); // [] — only runs once on mount, never re-fetches on lang change
+
+  const toggleLang = () => {
+    const next = lang === 'en' ? 'sk' : 'en';
+    saveLang(next);
+    setLang(next);
+  };
+
+  return (
+    <Shell rawTasks={rawTasks} activeTaskId={fromTask} lang={lang} onLangToggle={toggleLang}>
+      {loading
+        ? <Loading lang={lang}/>
+        : error
+          ? <div className="empty">Error: {error}</div>
+          : <ModelDetail fromTask={fromTask} data={data} lang={lang}/>}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
