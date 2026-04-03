@@ -5,8 +5,7 @@ Flask backend + React frontend, which loads results from the Supabase cloud data
 slovak-benchmark-site/
 ├── app.py                  
 ├── push_to_supabase.py     
-├── push_notebooks.py       
-├── supabase_schema.sql     
+├── push_notebooks.py        
 ├── requirements.txt
 ├── notebooks/              — použitie modelov ako Colab notebooky (.ipynb)
 └── static/
