@@ -3,13 +3,11 @@ Flask backend + React frontend, which loads results from the Supabase cloud data
 
 ```
 slovak-benchmark-site/
-├── app.py                  — Flask server, REST API endpointy, smerovanie statických stránok
-├── push_to_supabase.py     — skript na nahratie výsledkov z JSON súborov do databázy
-├── push_notebooks.py       — skript na extrakciu kódu z .ipynb notebookov a nahratie do DB
-├── supabase_schema.sql     — SQL schéma pre Supabase (tabuľky, view, indexy)
+├── app.py                  
+├── push_to_supabase.py     
+├── push_notebooks.py       
+├── supabase_schema.sql     
 ├── requirements.txt
-├── .env.example            — šablóna pre tajné kľúče (nikdy sa necommituje)
-├── .gitignore
 ├── notebooks/              — použitie modelov ako Colab notebooky (.ipynb)
 └── static/
     ├── index.html          — domovská stránka (splash + výber úlohy)
