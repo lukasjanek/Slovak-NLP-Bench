@@ -8,15 +8,15 @@ slovak-benchmark-site/
 ├── push_to_supabase.py     
 ├── push_notebooks.py        
 ├── requirements.txt
-├── notebooks/              — použitie modelov ako Colab notebooky (.ipynb)
+├── notebooks/              — models as colab notebooks (.ipynb)
 └── static/
-    ├── index.html          — domovská stránka (splash + výber úlohy)
-    ├── leaderboard.html    — rebríček pre vybranú úlohu (?task=qa)
-    ├── model.html          — detail modelu (?model=gerulata/slovakbert&task=fill_mask)
+    ├── index.html          — landing page (splash + task selection)
+    ├── leaderboard.html    — leaderboard for selected task (?task=qa)
+    ├── model.html          — model detail (?model=gerulata/slovakbert&task=fill_mask)
     ├── css/
-    │   └── main.css        — všetky zdieľané štýly (CSS premenné, layout, komponenty)
+    │   └── main.css        — all styles (CSS variables, layout, components)
     └── js/
-        └── api.js          — zdieľané JS pomocné funkcie (API konštanty, formátovanie)
+        └── api.js          — shared js help functions (API constants, formating)
 ```
 
 ---
@@ -34,7 +34,7 @@ huggingface-hub>=0.20.0
 python-dotenv>=1.0.0
 ```
 
-##  🚀 Spustenie webového portálu
+##  🚀 How to run web
 ---
 Change to main directory folder with cd ...
 ```bash
