@@ -1,4 +1,5 @@
-# SK·BENCH web portal
+# 🔓 SK·BENCH web portal
+---
 Flask backend + React frontend, which loads results from the Supabase cloud database and displays them in the form of rankings and detailed model cards
 
 ```
@@ -20,9 +21,9 @@ slovak-benchmark-site/
 
 ---
 
-## Spustenie webového portálu
+##  🚀 Spustenie webového portálu
+---
 Change to main directory folder with cd ...
-
 ```bash
 pip install -r requirements.txt
 python app.py
