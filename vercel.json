@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/tasks.py": { "runtime": "python3.12" },
-    "api/leaderboard.py": { "runtime": "python3.12" },
-    "api/model.py": { "runtime": "python3.12" }
-  },
   "rewrites": [
     { "source": "/api/tasks",             "destination": "/api/tasks" },
     { "source": "/api/leaderboard/:task", "destination": "/api/leaderboard" },
@@ -13,5 +8,9 @@
     { "source": "/css/:file*",            "destination": "/static/css/:file*" },
     { "source": "/js/:file*",             "destination": "/static/js/:file*" },
     { "source": "/",                      "destination": "/static/index.html" }
+  ],
+  "builds": [
+    { "src": "api/*.py", "use": "@vercel/python" },
+    { "src": "static/**", "use": "@vercel/static" }
   ]
 }
