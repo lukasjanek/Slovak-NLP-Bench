@@ -1,0 +1,2 @@
+supabase>=2.0.0
+storage3==0.7.7
