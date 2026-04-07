@@ -1,4 +1,5 @@
 import json
+from http.server import BaseHTTPRequestHandler
 
 TASKS = [
     {"id":"qa",            "label":"Question Answering","icon":"❓",
@@ -15,12 +16,11 @@ TASKS = [
      "dataset":"lukasjanek/slovaksum (test)","metric":"Perplexity ↓"},
 ]
 
-def handler(request):
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        },
-        "body": json.dumps(TASKS)
-    }
+class app(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps(TASKS).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
