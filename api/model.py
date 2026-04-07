@@ -1,41 +1,23 @@
-import json, os
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
+import os
+from flask import Flask, jsonify
 from supabase import create_client
 
-class app(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            path     = urlparse(self.path).path
-            model_id = path.split("/api/model/", 1)[-1].strip("/")
+app = Flask(__name__)
 
-            sb   = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_ANON_KEY"])
-            meta = sb.table("models").select("*").eq("model_id", model_id).execute()
+def get_sb():
+    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_ANON_KEY"])
 
-            if not meta.data:
-                body = json.dumps({"error": f"Not found: {model_id}"}).encode()
-                self.send_response(404)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(body)
-                return
-
-            res  = sb.table("latest_results").select("*").eq("model_id", model_id).execute()
-            code = sb.table("model_code").select("*").eq("model_id", model_id).execute()
-
-            body = json.dumps({
-                "model":   meta.data[0],
-                "results": res.data or [],
-                "code":    code.data or [],
-            }).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(body)
-        except Exception as e:
-            body = json.dumps({"error": str(e)}).encode()
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(body)
+@app.route("/api/model/<path:model_id>")
+def model(model_id):
+    try:
+        sb   = get_sb()
+        meta = sb.table("models").select("*").eq("model_id", model_id).execute()
+        if not meta.data:
+            return jsonify({"error": f"Not found: {model_id}"}), 404
+        res  = sb.table("latest_results").select("*").eq("model_id", model_id).execute()
+        code = sb.table("model_code").select("*").eq("model_id", model_id).execute()
+        resp = jsonify({"model": meta.data[0], "results": res.data or [], "code": code.data or []})
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

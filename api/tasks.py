@@ -1,5 +1,6 @@
-import json
-from http.server import BaseHTTPRequestHandler
+from flask import Flask, jsonify
+
+app = Flask(__name__)
 
 TASKS = [
     {"id":"qa",            "label":"Question Answering","icon":"❓",
@@ -16,11 +17,9 @@ TASKS = [
      "dataset":"lukasjanek/slovaksum (test)","metric":"Perplexity ↓"},
 ]
 
-class app(BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = json.dumps(TASKS).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
+@app.route("/api/tasks")
+@app.route("/api/tasks/")
+def tasks():
+    resp = jsonify(TASKS)
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
