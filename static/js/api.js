@@ -1,7 +1,8 @@
 // api.js — pure JS, no JSX
 // Shared constants, helpers and translations for all pages
 
-const API    = 'http://localhost:5000/api';
+//const API    = 'http://localhost:5000/api';
+const API = '/api';
 const GITHUB = 'https://github.com/lukasjanek/Slovak-Mini-Benchmark';
 
 function getParam(name) {
