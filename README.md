@@ -2,6 +2,8 @@
 ---
 Flask backend + React frontend, which loads results from the Supabase cloud database and displays them in the form of rankings and detailed model cards
 
+https://skbench-nine.vercel.app
+
 ```
 slovak-benchmark-site/
 ├── app.py                  
