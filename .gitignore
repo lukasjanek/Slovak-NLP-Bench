@@ -1,0 +1,16 @@
+# Secret keys — never commit
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Local SQLite database
+benchmark.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+app_debug.py
