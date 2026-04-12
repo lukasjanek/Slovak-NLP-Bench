@@ -25,9 +25,6 @@ slovak-benchmark-site/
 
 ## LOCALHOST SETUP
 
----
-
----
 
 ## ⚙️ Requirements
 
